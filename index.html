@@ -1,0 +1,822 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>新年倒计时</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', sans-serif;
+            background-color: #000;
+            color: white;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        /* 弹窗样式 */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+        }
+        
+        .modal.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        .modal-content {
+            background-color: white;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 80%;
+            text-align: center;
+            transform: scale(1);
+            transition: transform 0.3s ease;
+        }
+        
+        .modal.hidden .modal-content {
+            transform: scale(0.9);
+        }
+        
+        .modal h2 {
+            color: #333;
+            margin-bottom: 20px;
+            min-height: 1.5em;
+            font-size: 1.5em;
+        }
+        
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 20px;
+        }
+        
+        .option-btn {
+            padding: 12px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s, transform 0.2s;
+        }
+        
+        .option-btn:hover {
+            background-color: #45a049;
+            transform: translateY(-2px);
+        }
+        
+        /* 逐字显示效果 */
+        .typewriter {
+            overflow: hidden;
+            white-space: nowrap;
+            margin: 0 auto;
+        }
+        
+        .cursor::after {
+            content: '|';
+            animation: blink 1s infinite;
+        }
+        
+        @keyframes blink {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0; }
+        }
+        
+        /* 主界面样式 */
+        .screen {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            transition: opacity 1s ease;
+        }
+        
+        .hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        
+        /* 烟花画布 */
+        #fireworksCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1;
+        }
+        
+        /* 文字显示区域 */
+        .text-container {
+            position: relative;
+            z-index: 2;
+            max-width: 80%;
+            text-align: center;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 15px;
+            box-shadow: 0 0 20px rgba(255, 215, 0, 0.3);
+        }
+        
+        .text-line {
+            margin-bottom: 15px;
+            font-size: 1.8rem;
+            line-height: 1.5;
+            min-height: 1.8rem;
+        }
+        
+        .char {
+            display: inline-block;
+            opacity: 0;
+            animation: fadeIn 0.5s forwards;
+        }
+        
+        @keyframes fadeIn {
+            to { opacity: 1; }
+        }
+        
+        /* 倒计时样式 */
+        .countdown-container {
+            position: relative;
+            z-index: 2;
+            text-align: center;
+        }
+        
+        .countdown-title {
+            font-size: 2.5rem;
+            margin-bottom: 30px;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.7);
+        }
+        
+        .countdown-display {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        
+        .time-unit {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        
+        .time-value {
+            font-size: 5rem;
+            font-weight: bold;
+            width: 120px;
+            height: 120px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.6);
+            border-radius: 15px;
+            margin-bottom: 10px;
+            box-shadow: 0 0 15px rgba(255, 255, 255, 0.3);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .flip-animation {
+            animation: flip 0.5s ease-in-out;
+        }
+        
+        @keyframes flip {
+            0% { transform: rotateX(0); }
+            50% { transform: rotateX(90deg); }
+            100% { transform: rotateX(0); }
+        }
+        
+        .time-label {
+            font-size: 1.2rem;
+            color: #FFD700;
+        }
+        
+        .message {
+            font-size: 2rem;
+            margin-top: 20px;
+            padding: 15px 30px;
+            border-radius: 10px;
+            background: rgba(0, 0, 0, 0.7);
+            box-shadow: 0 0 15px rgba(255, 215, 0, 0.5);
+        }
+        
+        /* 黑屏样式 */
+        .black-screen {
+            background-color: #000;
+            z-index: 10;
+        }
+    </style>
+</head>
+<body>
+    <!-- 音乐选择弹窗 -->
+    <div id="musicModal" class="modal">
+        <div class="modal-content">
+            <h2>请选择音乐</h2>
+            <div class="options">
+                <button class="option-btn" data-music="everywhere we go">▶ everywhere we go</button>
+                <button class="option-btn" data-music="take me hand">▶ take me hand</button>
+                <button class="option-btn" data-music="起风了">▶ 起风了</button>
+                <button class="option-btn" data-music="夜、萤火虫和你">▶ 夜、萤火虫和你</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 跨年邀请弹窗 -->
+    <div id="inviteModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="inviteText">谢谢你愿意陪我跨年</h2>
+            <div class="options">
+                <button id="reluctantBtn" class="option-btn">▶ 并非自愿</button>
+                <button id="willingBtn" class="option-btn">▶ 行</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 恳求弹窗 -->
+    <div id="pleadModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="pleadText">求求你了陪我好不好</h2>
+            <div class="options">
+                <button id="refuseBtn" class="option-btn">▶ 不要</button>
+                <button id="agreeBtn" class="option-btn">▶ 行吧</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 太好了弹窗 -->
+    <div id="happyModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="happyText">太好了！！！</h2>
+            <div class="options">
+                <button id="continueBtn" class="option-btn">▶ 继续</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 拒绝5次后的弹窗 -->
+    <div id="rejectModal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="rejectText">既然你这么不想陪我，那就成全你好了</h2>
+            <div class="options">
+                <button id="closeBtn" class="option-btn">▶ 滚吧</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 烟花背景画布 -->
+    <canvas id="fireworksCanvas"></canvas>
+    
+    <!-- 文字显示界面 -->
+    <div id="textScreen" class="screen hidden">
+        <div class="text-container">
+            <div class="text-line" id="line1"></div>
+            <div class="text-line" id="line2"></div>
+            <div class="text-line" id="line3"></div>
+            <div class="text-line" id="line4"></div>
+        </div>
+    </div>
+    
+    <!-- 黑屏界面 -->
+    <div id="blackScreen" class="screen black-screen hidden"></div>
+    
+    <!-- 倒计时界面 -->
+    <div id="countdownScreen" class="screen hidden">
+        <div class="countdown-container">
+            <h1 class="countdown-title">距离2026年新年还有</h1>
+            <div class="countdown-display">
+                <div class="time-unit">
+                    <div id="hours" class="time-value">00</div>
+                    <div class="time-label">小时</div>
+                </div>
+                <div class="time-unit">
+                    <div id="minutes" class="time-value">00</div>
+                    <div class="time-label">分钟</div>
+                </div>
+                <div class="time-unit">
+                    <div id="seconds" class="time-value">00</div>
+                    <div class="time-label">秒</div>
+                </div>
+            </div>
+            <div id="message" class="message"></div>
+        </div>
+    </div>
+
+    <!-- 音乐播放器 -->
+    <audio id="bgMusic" loop></audio>
+
+    <script>
+        // 音乐配置
+        const musicFiles = {
+            'everywhere we go': 'music/everywhere-we-go.mp3',
+            'take me hand': 'music/take-me-hand.mp3',
+            '起风了': 'music/qifengle.mp3',
+            '夜、萤火虫和你': 'music/you.mp3'
+        };
+        
+        // 烟花效果
+        class Fireworks {
+            constructor(canvas) {
+                this.canvas = canvas;
+                this.ctx = canvas.getContext('2d');
+                this.particles = [];
+                this.fireworks = [];
+                
+                this.setCanvasSize();
+                window.addEventListener('resize', () => this.setCanvasSize());
+            }
+            
+            setCanvasSize() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight;
+            }
+            
+            createFirework(x, y) {
+                const firework = {
+                    x: x || Math.random() * this.canvas.width,
+                    y: this.canvas.height,
+                    targetX: x || Math.random() * this.canvas.width,
+                    targetY: y || Math.random() * this.canvas.height * 0.7,
+                    speed: 2 + Math.random() * 2,
+                    brightness: 50 + Math.random() * 50,
+                    color: `hsl(${Math.random() * 360}, 100%, 50%)`,
+                    particles: [],
+                    exploded: false
+                };
+                
+                this.fireworks.push(firework);
+            }
+            
+            explode(firework) {
+                firework.exploded = true;
+                const particleCount = 100 + Math.floor(Math.random() * 80); // 增加粒子数量
+                
+                for (let i = 0; i < particleCount; i++) {
+                    const angle = Math.random() * Math.PI * 2;
+                    const speed = 1 + Math.random() * 4;
+                    const size = 1 + Math.random() * 4;
+                    
+                    // 使用更鲜艳的颜色
+                    const hue = Math.floor(Math.random() * 360);
+                    const color = `hsl(${hue}, 100%, 60%)`;
+                    
+                    this.particles.push({
+                        x: firework.x,
+                        y: firework.y,
+                        vx: Math.cos(angle) * speed,
+                        vy: Math.sin(angle) * speed,
+                        color: color,
+                        brightness: firework.brightness,
+                        size: size,
+                        alpha: 1,
+                        decay: 0.02 + Math.random() * 0.02
+                    });
+                }
+            }
+            
+            update() {
+                this.ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+                
+                // 增加烟花生成概率
+                if (Math.random() < 0.08) {
+                    this.createFirework();
+                }
+                
+                // 更新烟花
+                for (let i = this.fireworks.length - 1; i >= 0; i--) {
+                    const firework = this.fireworks[i];
+                    
+                    if (!firework.exploded) {
+                        // 烟花上升
+                        const dx = firework.targetX - firework.x;
+                        const dy = firework.targetY - firework.y;
+                        const dist = Math.sqrt(dx * dx + dy * dy);
+                        
+                        firework.x += dx / dist * firework.speed;
+                        firework.y += dy / dist * firework.speed;
+                        
+                        // 绘制烟花
+                        this.ctx.beginPath();
+                        this.ctx.arc(firework.x, firework.y, 3, 0, Math.PI * 2);
+                        this.ctx.fillStyle = firework.color;
+                        this.ctx.fill();
+                        
+                        // 检查是否到达目标位置
+                        if (dist < 5) {
+                            this.explode(firework);
+                            this.fireworks.splice(i, 1);
+                        }
+                    }
+                }
+                
+                // 更新粒子
+                for (let i = this.particles.length - 1; i >= 0; i--) {
+                    const p = this.particles[i];
+                    
+                    p.x += p.vx;
+                    p.y += p.vy;
+                    p.vy += 0.05; // 重力
+                    p.alpha -= p.decay;
+                    
+                    if (p.alpha <= 0) {
+                        this.particles.splice(i, 1);
+                        continue;
+                    }
+                    
+                    // 绘制粒子
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+                    this.ctx.fillStyle = `rgba(${this.hexToRgb(p.color)}, ${p.alpha})`;
+                    this.ctx.fill();
+                }
+                
+                requestAnimationFrame(() => this.update());
+            }
+            
+            hexToRgb(hex) {
+                const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+                return result ? 
+                    `${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}` : 
+                    '255, 255, 255';
+            }
+            
+            start() {
+                this.update();
+            }
+        }
+
+        // 文字显示功能
+        class TextDisplay {
+            constructor() {
+                this.lines = [
+                    "感谢你这段时间的陪伴( ﹡ˆoˆ﹡ )，",
+                    "愿意与我共度这个特别的时刻，",
+                    "在新的一年即将到来之际，",
+                    "让我们一起举杯庆祝, 期待未来能有更多的美好时光＼＼\\٩( 'ω' )و //／／"
+                ];
+                this.currentLine = 0;
+                this.currentChar = 0;
+                this.lineElements = [
+                    document.getElementById('line1'),
+                    document.getElementById('line2'),
+                    document.getElementById('line3'),
+                    document.getElementById('line4')
+                ];
+            }
+            
+            // 生成随机颜色
+            getRandomColor() {
+                const colors = [
+                    '#FF6B6B', '#4ECDC4', '#FFE66D', '#6B48FF', 
+                    '#FF9F1C', '#2EC4B6', '#E71D36', '#FF9F1C'
+                ];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            // 显示下一个字符
+            showNextChar() {
+                if (this.currentLine >= this.lines.length) {
+                    // 所有文字显示完成，等待2秒后进入黑屏
+                    setTimeout(() => {
+                        document.getElementById('textScreen').classList.add('hidden');
+                        document.getElementById('blackScreen').classList.remove('hidden');
+                        
+                        // 黑屏2秒后进入倒计时界面
+                        setTimeout(() => {
+                            document.getElementById('blackScreen').classList.add('hidden');
+                            document.getElementById('countdownScreen').classList.remove('hidden');
+                            countdown.start();
+                        }, 2000);
+                    }, 2000);
+                    return;
+                }
+                
+                const line = this.lines[this.currentLine];
+                const lineElement = this.lineElements[this.currentLine];
+                
+                if (this.currentChar < line.length) {
+                    const char = line[this.currentChar];
+                    const charSpan = document.createElement('span');
+                    charSpan.className = 'char';
+                    charSpan.textContent = char;
+                    charSpan.style.color = this.getRandomColor();
+                    
+                    // 添加随机闪烁效果
+                    charSpan.style.animationDelay = `${Math.random() * 0.5}s`;
+                    
+                    lineElement.appendChild(charSpan);
+                    this.currentChar++;
+                    
+                    // 随机延迟显示下一个字符
+                    setTimeout(() => this.showNextChar(), 50 + Math.random() * 100);
+                } else {
+                    // 换行
+                    this.currentLine++;
+                    this.currentChar = 0;
+                    setTimeout(() => this.showNextChar(), 500);
+                }
+            }
+            
+            start() {
+                this.showNextChar();
+            }
+        }
+
+        // 倒计时功能
+        class Countdown {
+            constructor() {
+                this.targetDate = new Date('2026-01-01T00:00:00');
+                this.hoursElement = document.getElementById('hours');
+                this.minutesElement = document.getElementById('minutes');
+                this.secondsElement = document.getElementById('seconds');
+                this.messageElement = document.getElementById('message');
+                this.lastSeconds = -1;
+            }
+            
+            // 生成随机颜色
+            getRandomColor() {
+                const colors = [
+                    '#FF6B6B', '#4ECDC4', '#FFE66D', '#6B48FF', 
+                    '#FF9F1C', '#2EC4B6', '#E71D36', '#FF9F1C'
+                ];
+                return colors[Math.floor(Math.random() * colors.length)];
+            }
+            
+            // 更新倒计时显示
+            update() {
+                const now = new Date();
+                const diff = this.targetDate - now;
+                
+                if (diff <= 0) {
+                    // 时间已过
+                    this.messageElement.textContent = "哎呀！时间已经过了！怎么能错过这么重要的时间呢ಠ╭╮ಠ";
+                    this.hoursElement.textContent = "00";
+                    this.minutesElement.textContent = "00";
+                    this.secondsElement.textContent = "00";
+                    return;
+                }
+                
+                const hours = Math.floor(diff / (1000 * 60 * 60));
+                const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+                const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+                
+                // 更新小时和分钟显示
+                this.hoursElement.textContent = hours.toString().padStart(2, '0');
+                this.minutesElement.textContent = minutes.toString().padStart(2, '0');
+                
+                // 更新秒数显示，并添加动画
+                if (seconds !== this.lastSeconds) {
+                    this.secondsElement.textContent = seconds.toString().padStart(2, '0');
+                    this.secondsElement.classList.add('flip-animation');
+                    
+                    // 随机改变颜色
+                    this.hoursElement.style.color = this.getRandomColor();
+                    this.minutesElement.style.color = this.getRandomColor();
+                    this.secondsElement.style.color = this.getRandomColor();
+                    
+                    setTimeout(() => {
+                        this.secondsElement.classList.remove('flip-animation');
+                    }, 500);
+                    
+                    this.lastSeconds = seconds;
+                }
+                
+                // 根据时间差显示不同消息
+                if (hours > 24) {
+                    this.messageElement.textContent = "还有好久呢，再等等吧";
+                } else {
+                    this.messageElement.textContent = "新年即将到来，准备好迎接了吗？";
+                }
+                
+                // 继续更新
+                requestAnimationFrame(() => this.update());
+            }
+            
+            start() {
+                this.update();
+            }
+        }
+
+        // 弹窗管理
+        class ModalManager {
+            constructor() {
+                this.musicModal = document.getElementById('musicModal');
+                this.inviteModal = document.getElementById('inviteModal');
+                this.pleadModal = document.getElementById('pleadModal');
+                this.happyModal = document.getElementById('happyModal');
+                this.rejectModal = document.getElementById('rejectModal');
+                this.bgMusic = document.getElementById('bgMusic');
+                
+                this.musicSelected = false;
+                this.musicTimeout = null;
+                this.refuseCount = 0;
+                
+                this.initEvents();
+            }
+            
+            initEvents() {
+                // 设置5秒后自动选择音乐
+                this.musicTimeout = setTimeout(() => this.selectRandomMusic(), 5000);
+                
+                // 音乐选择按钮事件
+                document.querySelectorAll('#musicModal .option-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        if (!this.musicSelected) {
+                            this.musicSelected = true;
+                            clearTimeout(this.musicTimeout);
+                            const musicName = btn.getAttribute('data-music');
+                            this.playMusic(musicName);
+                            this.showInviteModal();
+                        }
+                    });
+                });
+                
+                // 跨年邀请按钮事件
+                document.getElementById('reluctantBtn').addEventListener('click', () => {
+                    this.refuseCount = 0; // 重置拒绝计数
+                    this.showPleadModal();
+                });
+                
+                document.getElementById('willingBtn').addEventListener('click', () => {
+                    this.showHappyModal();
+                });
+                
+                // 恳求弹窗按钮事件
+                document.getElementById('refuseBtn').addEventListener('click', () => {
+                    this.refuseCount++;
+                    
+                    // 如果拒绝5次，显示拒绝弹窗
+                    if (this.refuseCount >= 5) {
+                        this.showRejectModal();
+                    } else {
+                        // 不隐藏弹窗，只是更新文字和动画
+                        const pleadText = document.getElementById('pleadText');
+                        pleadText.textContent = '';
+                        pleadText.classList.remove('cursor');
+                        setTimeout(() => {
+                            this.typewriterEffect(pleadText, '求求你了陪我好不好');
+                        }, 100);
+                    }
+                });
+                
+                document.getElementById('agreeBtn').addEventListener('click', () => {
+                    this.showHappyModal();
+                });
+                
+                // 继续按钮事件
+                document.getElementById('continueBtn').addEventListener('click', () => {
+                    this.showTextScreen();
+                });
+                
+                // 关闭按钮事件
+                document.getElementById('closeBtn').addEventListener('click', () => {
+                    window.close(); // 尝试关闭窗口
+                    // 如果无法关闭，则显示关闭提示
+                    if (!window.closed) {
+                        alert('请手动关闭此标签页');
+                    }
+                });
+            }
+            
+            // 随机选择音乐
+            selectRandomMusic() {
+                if (!this.musicSelected) {
+                    this.musicSelected = true;
+                    const musicNames = Object.keys(musicFiles);
+                    const randomMusic = musicNames[Math.floor(Math.random() * musicNames.length)];
+                    this.playMusic(randomMusic);
+                    this.showInviteModal();
+                }
+            }
+            
+            // 播放音乐
+            playMusic(musicName) {
+                // 根据音乐名称设置音频源
+                if (musicFiles[musicName]) {
+                    this.bgMusic.src = musicFiles[musicName];
+                    this.bgMusic.play().catch(e => {
+                        console.log('自动播放被阻止，需要用户交互');
+                    });
+                }
+            }
+            
+            // 显示跨年邀请弹窗
+            showInviteModal() {
+                this.hideModal(this.musicModal);
+                this.showModal(this.inviteModal);
+                this.typewriterEffect(document.getElementById('inviteText'), '谢谢你愿意陪我跨年');
+            }
+            
+            // 显示恳求弹窗
+            showPleadModal() {
+                this.hideModal(this.inviteModal);
+                this.showModal(this.pleadModal);
+                this.typewriterEffect(document.getElementById('pleadText'), '求求你了陪我好不好');
+            }
+            
+            // 显示太好了弹窗
+            showHappyModal() {
+                this.hideModal(this.inviteModal);
+                this.hideModal(this.pleadModal);
+                this.showModal(this.happyModal);
+                this.typewriterEffect(document.getElementById('happyText'), '太好了！！！');
+            }
+            
+            // 显示拒绝弹窗
+            showRejectModal() {
+                this.hideModal(this.pleadModal);
+                this.showModal(this.rejectModal);
+                this.typewriterEffect(document.getElementById('rejectText'), '既然你这么不想陪我，那就成全你好了');
+            }
+            
+            // 显示文字界面
+            showTextScreen() {
+                this.hideModal(this.happyModal);
+                this.hideModal(this.rejectModal);
+                document.getElementById('textScreen').classList.remove('hidden');
+                
+                // 启动文字显示
+                const textDisplay = new TextDisplay();
+                textDisplay.start();
+            }
+            
+            // 显示模态框（带过渡效果）
+            showModal(modal) {
+                modal.classList.remove('hidden');
+                // 强制重绘
+                modal.offsetHeight;
+                modal.style.opacity = "1";
+                modal.querySelector('.modal-content').style.transform = "scale(1)";
+            }
+            
+            // 隐藏模态框（带过渡效果）
+            hideModal(modal) {
+                modal.style.opacity = "0";
+                modal.querySelector('.modal-content').style.transform = "scale(0.9)";
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 300);
+            }
+            
+            // 逐字显示效果函数
+            typewriterEffect(element, text) {
+                element.textContent = '';
+                element.classList.add('cursor', 'typewriter');
+                
+                let i = 0;
+                const timer = setInterval(() => {
+                    if (i < text.length) {
+                        element.textContent += text.charAt(i);
+                        i++;
+                    } else {
+                        clearInterval(timer);
+                        element.classList.remove('cursor');
+                    }
+                }, 100);
+            }
+        }
+
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            // 启动烟花效果
+            const canvas = document.getElementById('fireworksCanvas');
+            const fireworks = new Fireworks(canvas);
+            fireworks.start();
+            
+            // 启动弹窗管理
+            new ModalManager();
+            
+            // 初始化倒计时
+            window.countdown = new Countdown();
+        });
+    </script>
+</body>
+</html>
